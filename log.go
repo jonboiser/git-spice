@@ -49,11 +49,13 @@ var (
 
 // branchLogCmd is the shared implementation of logShortCmd and logLongCmd.
 type branchLogCmd struct {
-	All bool `short:"a" long:"all" config:"log.all" help:"Show all tracked branches, not just the current stack."`
+	All     bool `short:"a" long:"all" config:"log.all" help:"Show all tracked branches, not just the current stack."`
+	ShowURL bool `long:"show-url" config:"log.showUrl" help:"Show URLs for branches with associated pull requests." default:"false"`
 }
 
 type branchLogOptions struct {
 	Commits bool
+	ShowURL bool
 
 	Log *log.Logger
 }
@@ -171,12 +173,14 @@ func (cmd *branchLogCmd) run(
 		return fliptree.DefaultNodeMarker
 	}
 
-	// Try to get a forge repository to fetch URLs
+	// Try to get a forge repository to fetch URLs, but only if the flag is enabled
 	var remoteRepo forge.Repository
-	remote, err := store.Remote()
-	if err == nil {
-		secretStash := &secret.Keyring{}
-		remoteRepo, _ = openRemoteRepositorySilent(ctx, secretStash, svc.Forges(), repo, remote)
+	if opts.ShowURL {
+		remote, err := store.Remote()
+		if err == nil {
+			secretStash := &secret.Keyring{}
+			remoteRepo, _ = openRemoteRepositorySilent(ctx, secretStash, svc.Forges(), repo, remote)
+		}
 	}
 
 	var s strings.Builder
