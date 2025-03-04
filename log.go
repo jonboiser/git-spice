@@ -11,6 +11,7 @@ import (
 	"github.com/charmbracelet/log"
 	"go.abhg.dev/gs/internal/forge"
 	"go.abhg.dev/gs/internal/git"
+	"go.abhg.dev/gs/internal/secret"
 	"go.abhg.dev/gs/internal/spice"
 	"go.abhg.dev/gs/internal/spice/state"
 	"go.abhg.dev/gs/internal/ui"
@@ -64,6 +65,7 @@ func (cmd *branchLogCmd) run(
 	store *state.Store,
 	svc *spice.Service,
 ) (err error) {
+	// We'll collect URLs from LoadBranches
 	log := opts.Log
 	currentBranch, err := repo.CurrentBranch(ctx)
 	if err != nil {
@@ -80,6 +82,7 @@ func (cmd *branchLogCmd) run(
 		Name     string
 		Base     string
 		ChangeID forge.ChangeID
+		ChangeURL string
 
 		Commits []git.CommitDetail
 		Aboves  []int
@@ -168,6 +171,14 @@ func (cmd *branchLogCmd) run(
 		return fliptree.DefaultNodeMarker
 	}
 
+	// Try to get a forge repository to fetch URLs
+	var remoteRepo forge.Repository
+	remote, err := store.Remote()
+	if err == nil {
+		secretStash := &secret.Keyring{}
+		remoteRepo, _ = openRemoteRepositorySilent(ctx, secretStash, svc.Forges(), repo, remote)
+	}
+
 	var s strings.Builder
 	err = fliptree.Write(&s, fliptree.Graph[*branchInfo]{
 		Roots:  []int{trunkIdx},
@@ -181,7 +192,16 @@ func (cmd *branchLogCmd) run(
 			}
 
 			if b.ChangeID != nil {
-				_, _ = fmt.Fprintf(&o, " (%v)", b.ChangeID)
+				// Try to get the URL if we have a forge repo
+				if remoteRepo != nil {
+					if changeInfo, err := remoteRepo.FindChangeByID(ctx, b.ChangeID); err == nil && changeInfo != nil {
+						_, _ = fmt.Fprintf(&o, " (%v  %s)", b.ChangeID, changeInfo.URL)
+					} else {
+						_, _ = fmt.Fprintf(&o, " (%v)", b.ChangeID)
+					}
+				} else {
+					_, _ = fmt.Fprintf(&o, " (%v)", b.ChangeID)
+				}
 			}
 
 			if restackErr := new(spice.BranchNeedsRestackError); errors.As(svc.VerifyRestacked(ctx, b.Name), &restackErr) {
