@@ -118,3 +118,8 @@ func newService(
 		forges: forges,
 	}
 }
+
+// Forges returns the registry of available forge implementations.
+func (s *Service) Forges() *forge.Registry {
+	return s.forges
+}

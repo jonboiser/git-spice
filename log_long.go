@@ -32,5 +32,6 @@ func (cmd *logLongCmd) Run(
 	return cmd.run(ctx, &branchLogOptions{
 		Log:     log,
 		Commits: true,
+		ShowURL: cmd.ShowURL,
 	}, repo, store, svc)
 }

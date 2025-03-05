@@ -30,6 +30,7 @@ func (cmd *logShortCmd) Run(
 	svc *spice.Service,
 ) (err error) {
 	return cmd.run(ctx, &branchLogOptions{
-		Log: log,
+		Log:     log,
+		ShowURL: cmd.ShowURL,
 	}, repo, store, svc)
 }
