@@ -1,0 +1,6 @@
+[
+  {"branch": "main", "base": "", "disabled": false, "prNumber": ""},
+  {"branch": "feature-branch", "base": "main", "disabled": false, "prNumber": "123"},
+  {"branch": "bugfix-branch", "base": "main", "disabled": false, "prNumber": "456"},
+  {"branch": "docs-branch", "base": "main", "disabled": false, "prNumber": "789"}
+]

@@ -23,7 +23,7 @@ import (
 // The branches file is a JSON-encoded file with the format:
 //
 //	[
-//		{branch: string, base: string?, disabled: bool?},
+//		{branch: string, base: string?, disabled: bool?, prNumber: string?},
 //		...
 //	]
 func TestBranchTreeSelect_Script(t *testing.T) {

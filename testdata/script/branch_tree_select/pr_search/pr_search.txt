@@ -1,0 +1,72 @@
+# Test PR number search functionality
+# This test verifies that branches can be searched by PR number
+
+init
+
+# Create test branches with PR numbers
+await Select a branch
+snapshot
+[stdout]
+Select a branch:
+main ◀
+feature-branch (#123)
+bugfix-branch (#456)
+docs-branch (#789)
+
+> cmp stdout prompt
+
+# Test searching by PR number
+> feed 123
+> await
+> snapshot
+[stdout]
+Select a branch:
+feature-branch (#123) ◀
+
+> cmp stdout pr_search
+
+# Test searching by another PR number
+> feed -r 3 <BS>
+> feed 456
+> await
+> snapshot
+[stdout]
+Select a branch:
+bugfix-branch (#456) ◀
+
+> cmp stdout pr_search_456
+
+# Test searching by branch name still works
+> feed -r 3 <BS>
+> feed feature
+> await
+> snapshot
+[stdout]
+Select a branch:
+feature-branch (#123) ◀
+
+> cmp stdout branch_search
+
+# Test that no match shows error
+> feed -r 7 <BS>
+> feed 999
+> await
+> snapshot
+[stdout]
+no available matches: 999
+
+> cmp stdout no_match
+
+# Clear filter and select a branch
+> feed -r 3 <BS>
+> await
+> snapshot
+[stdout]
+Select a branch:
+main ◀
+feature-branch (#123)
+bugfix-branch (#456)
+docs-branch (#789)
+
+> cmp stdout prompt
+> feed <Enter>
