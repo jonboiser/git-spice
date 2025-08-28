@@ -94,7 +94,7 @@ type branchInfo struct {
 
 func (b *branchInfo) displayText() string {
 	if b.PRNumber != "" {
-		return b.Branch + " (#" + b.PRNumber + ")"
+		return b.Branch + " (" + b.PRNumber + ")"
 	}
 	return b.Branch
 }
@@ -391,8 +391,7 @@ func (b *BranchTreeSelect) matchesFilter(bi *branchInfo) bool {
 		return true
 	}
 
-	displayText := bi.displayText()
-	matches := fuzzy.Find(string(b.filter), []string{displayText})
+	matches := fuzzy.Find(string(b.filter), []string{bi.displayText()})
 	if len(matches) > 0 {
 		bi.Highlights = matches[0].MatchedIndexes
 		return true
@@ -477,10 +476,7 @@ func (b *BranchTreeSelect) Render(w ui.Writer) {
 
 			var o strings.Builder
 
-			displayText := bi.displayText()
-
-			// Apply highlighting to the display text
-			label := []rune(displayText)
+			label := []rune(bi.displayText())
 			lastRuneIdx := 0
 			for _, runeIdx := range highlights {
 				o.WriteString(nameStyle.Render(string(label[lastRuneIdx:runeIdx])))
