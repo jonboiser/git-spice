@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/alecthomas/kong"
+	"go.abhg.dev/gs/internal/forge"
 	"go.abhg.dev/gs/internal/git"
 	"go.abhg.dev/gs/internal/sliceutil"
 	"go.abhg.dev/gs/internal/spice/state"
@@ -57,12 +58,14 @@ func (cfg *BranchPromptConfig) BeforeApply(kctx *kong.Context) error {
 		view ui.View,
 		repo *git.Repository,
 		store *state.Store,
+		forges *forge.Registry,
 	) (*branchPrompter, error) {
 		return &branchPrompter{
-			sort:  cfg.BranchPromptSort,
-			view:  view,
-			repo:  repo,
-			store: store,
+			sort:   cfg.BranchPromptSort,
+			view:   view,
+			repo:   repo,
+			store:  store,
+			forges: forges,
 		}, nil
 	})
 }
@@ -76,9 +79,10 @@ type branchPrompter struct {
 	// Defaults to branch name if unset.
 	sort string
 
-	view  ui.View
-	repo  *git.Repository
-	store *state.Store
+	view   ui.View
+	repo   *git.Repository
+	store  *state.Store
+	forges *forge.Registry
 }
 
 // branchPromptRequest defines parameters for the branch prompt
@@ -151,10 +155,25 @@ func (p *branchPrompter) Prompt(ctx context.Context, req *branchPromptRequest) (
 		if !filter(branch) {
 			continue
 		}
+
+		// Get PR number from branch metadata if available
+		var prNumber string
+		if res, err := p.store.LookupBranch(ctx, branch.Name); err == nil && res.ChangeMetadata != nil {
+			// Try to extract PR number from change metadata
+			if f, ok := p.forges.Lookup(res.ChangeForge); ok {
+				if md, err := f.UnmarshalChangeMetadata(res.ChangeMetadata); err == nil {
+					if changeID := md.ChangeID(); changeID != nil {
+						prNumber = changeID.String()
+					}
+				}
+			}
+		}
+
 		items = append(items, widget.BranchTreeItem{
 			Base:     bases[branch.Name],
 			Branch:   branch.Name,
 			Disabled: disabled(branch),
+			PRNumber: prNumber,
 		})
 	}
 	if p.sort == "" {

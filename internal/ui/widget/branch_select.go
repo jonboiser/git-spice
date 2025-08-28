@@ -77,6 +77,10 @@ type BranchTreeItem struct {
 	// Disabled indicates that this branch cannot be selected.
 	// It will appear grayed out in the list.
 	Disabled bool
+
+	// PRNumber is the pull request number associated with this branch.
+	// This is used for searching by PR number in addition to branch name.
+	PRNumber string
 }
 
 type branchInfo struct {
@@ -86,6 +90,13 @@ type branchInfo struct {
 	Aboves     []int // indexes of branches in 'all' with this as base
 	Highlights []int // indexes of runes in Branch name to highlight
 	Visible    bool  // whether this branch is visible
+}
+
+func (b *branchInfo) displayText() string {
+	if b.PRNumber != "" {
+		return b.Branch + " (#" + b.PRNumber + ")"
+	}
+	return b.Branch
 }
 
 // BranchTreeSelect is a prompt that allows selecting a branch
@@ -379,12 +390,15 @@ func (b *BranchTreeSelect) matchesFilter(bi *branchInfo) bool {
 	if len(b.filter) == 0 {
 		return true
 	}
-	matches := fuzzy.Find(string(b.filter), []string{bi.Branch})
-	if len(matches) == 0 {
-		return false
+
+	displayText := bi.displayText()
+	matches := fuzzy.Find(string(b.filter), []string{displayText})
+	if len(matches) > 0 {
+		bi.Highlights = matches[0].MatchedIndexes
+		return true
 	}
-	bi.Highlights = matches[0].MatchedIndexes
-	return true
+
+	return false
 }
 
 // Render renders the widget.
@@ -462,8 +476,12 @@ func (b *BranchTreeSelect) Render(w ui.Writer) {
 			}
 
 			var o strings.Builder
+
+			displayText := bi.displayText()
+
+			// Apply highlighting to the display text
+			label := []rune(displayText)
 			lastRuneIdx := 0
-			label := []rune(bi.Branch)
 			for _, runeIdx := range highlights {
 				o.WriteString(nameStyle.Render(string(label[lastRuneIdx:runeIdx])))
 				o.WriteString(highlightStyle.Render(string(label[runeIdx])))
